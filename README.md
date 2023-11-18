@@ -9,9 +9,14 @@
 bash start.sh
 ```
 
-## ~~[教程过旧，待更新](https://blog.vbar.fun/archives/openwrt%E5%AE%9A%E6%97%B6%E4%BC%98%E9%80%89cloudflareip%E5%B9%B6%E6%9B%B4%E6%96%B0%E5%88%B0dnspod)~~
-~~详细使用教程请参考[详细教程](https://blog.vbar.fun/archives/openwrt%E5%AE%9A%E6%97%B6%E4%BC%98%E9%80%89cloudflareip%E5%B9%B6%E6%9B%B4%E6%96%B0%E5%88%B0dnspod)~~
+openwrt下：
 
+##用于openwrt安装jq和timeout，确保CloudflareSpeedTestDDNS运行正常。
+```opkg update
+opkg install jq coreutils-timeout
+opkg list-installed | grep jq
+opkg list-installed | grep coreutils-timeout
+```
 ## Docker运行
 https://hub.docker.com/r/lee1080/cfstddns
 
