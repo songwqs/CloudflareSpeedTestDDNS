@@ -1,3 +1,7 @@
+
+关于测速地址废了建议自建或者换了新的 :https://github.com/XIU2/CloudflareSpeedTest/issues/168(https://github.com/XIU2/CloudflareSpeedTest/issues/168)
+
+
 # CloudflareSpeedTestDDNS
 使用CloudflareSpeedTest工具优选IP后自动DDNS到Cloudflare
 
