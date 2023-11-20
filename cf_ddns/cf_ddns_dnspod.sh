@@ -93,27 +93,91 @@ fi
 
 # 检查是否配置反代IP
 if [ "$IP_PR_IP" = "1" ] ; then
-  if [[ $(cat ./cf_ddns/.pr_ip_timestamp | jq -r ".pr1_expires") -le $(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) ]]; then
-    curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/pr_ip.txt
-    echo "{\"pr1_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
-    echo "已更新线路1的反向代理列表"
-  fi
+		  if [ -e ./cf_ddns/.pr_ip_timestamp ]; then
+		    # 文件存在
+		    if [[ $(cat ./cf_ddns/.pr_ip_timestamp | jq -r ".pr1_expires") -le $(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) ]]; then
+		        # 文件存在且时间戳小于等于当前时间戳，执行更新操作
+		        curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/pr_ip.txt
+		        echo "{\"pr1_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
+		        
+		    fi
+		else
+		    # 文件不存在，执行相应的操作
+		    curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/pr_ip.txt
+		    echo "{\"pr1_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
+		fi
+	echo "已更新线路1的反向代理列表"
 elif [ "$IP_PR_IP" = "2" ] ; then
-  if [[ $(cat ./cf_ddns/.pr_ip_timestamp | jq -r ".pr2_expires") -le $(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) ]]; then
-    curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/zip_baipiao_eu_org/pr_ip.txt
-    echo "{\"pr2_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
-    echo "已更新线路2的反向代理列表"
-  fi
+
+		if [ -e ./cf_ddns/.pr_ip_timestamp ]; then
+		    # 文件存在
+		    if [[ $(cat ./cf_ddns/.pr_ip_timestamp | jq -r ".pr1_expires") -le $(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) ]]; then
+		        # 文件存在且时间戳小于等于当前时间戳，执行更新操作
+		        mkdir -p "./cf_ddns/txt"
+				wget -O "./cf_ddns/txt/txt.zip" "https://zip.baipiao.eu.org"
+				if [ $? -ne 0 ]; then
+				    echo "错误：无法下载 txt.zip。"
+				    exit 1
+				fi
+				unzip -o -d "./cf_ddns/txt" "./cf_ddns/txt/txt.zip"
+				if [ $? -ne 0 ]; then
+				    echo "错误：无法解压 txt.zip。"
+				    exit 1
+				fi
+				rm "./cf_ddns/txt/txt.zip"	
+		        echo "{\"pr1_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
+		    fi
+		else
+		    # 文件不存在，执行相应的操作
+		    mkdir -p "./cf_ddns/txt"
+			wget -O "./cf_ddns/txt/txt.zip" "https://zip.baipiao.eu.org"
+			if [ $? -ne 0 ]; then
+			    echo "错误：无法下载 txt.zip。"
+			    exit 1
+			fi
+			unzip -o -d "./cf_ddns/txt" "./cf_ddns/txt/txt.zip"
+			if [ $? -ne 0 ]; then
+			    echo "错误：无法解压 txt.zip。"
+			    exit 1
+			fi
+			rm "./cf_ddns/txt/txt.zip"	
+		    echo "{\"pr1_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
+		fi		 
+			
+		echo "已更新线路2的反向代理列表"		
+		sleep 3s;	
 fi
   
 if [ "$IP_PR_IP" -ne "0" ] ; then
-  $CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cf_ddns/pr_ip.txt -o ./cf_ddns/result.csv
+		if [ "$IP_PR_IP" = "1" ] ; then
+			if [ -e "./cf_ddns/pr_ip.txt" ]; then
+				$CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cf_ddns/pr_ip.txt -o ./cf_ddns/result.csv
+					else
+						   echo "缺少pr_ip.txt文件"
+						   exit 1
+					fi
+		elif [ "$IP_PR_IP" = "2" ] ; then
+		#格式31898-0-2086.txt
+		result_filename="${IP_PR_IP_AS}-${IP_PR_IP_tls}-${IP_PR_IP_port}.txt"
+			if [ -d "./cf_ddns/txt" ]; then
+			$CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f "./cf_ddns/txt/$result_filename" -o ./cf_ddns/result.csv
+			else
+				echo "缺少txt目录"
+				 exit 1
+			fi		
+		fi
 elif [ "$IP_ADDR" = "ipv6" ] ; then
   #开始优选IPv6
   $CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -tll $CFST_TLL -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cf_ddns/ipv6.txt -o ./cf_ddns/result.csv
+  	
 else
   #开始优选IPv4
+  if [ -e "./cf_ddns/ip.txt" ]; then
   $CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -tll $CFST_TLL -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cf_ddns/ip.txt -o ./cf_ddns/result.csv
+  else
+		   echo "缺少ip.txt文件"
+		   exit 1
+	fi
 fi
 echo "测速完毕";
 
