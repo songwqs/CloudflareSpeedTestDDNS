@@ -93,45 +93,29 @@ if [ "$IP_PR_IP" = "1" ] ; then
 		        echo "已更新线路1的反向代理列表"
 		    fi
 		else
-		    # 文件不存在，执行相应的操作
-		    echo "Error: File ./cf_ddns/.pr_ip_timestamp does not exist. Downloading the file and creating it..."
-		    
-		    # 下载文件
 		    curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/pr_ip.txt
 		    echo "{\"pr1_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
 		fi
 elif [ "$IP_PR_IP" = "2" ] ; then
-			# 创建目标目录（如果不存在）
 			mkdir -p "./cf_ddns/txt"
-			# 使用 wget 下载并解压 txt.zip 文件
 			wget -O "./cf_ddns/txt/txt.zip" "https://zip.baipiao.eu.org"
-			
-			# 检查下载是否成功
 			if [ $? -ne 0 ]; then
 			    echo "错误：无法下载 txt.zip。"
 			    exit 1
 			fi
-			
-			# 解压文件
 			unzip -o -d "./cf_ddns/txt" "./cf_ddns/txt/txt.zip"
-			
-			# 检查解压是否成功
 			if [ $? -ne 0 ]; then
 			    echo "错误：无法解压 txt.zip。"
 			    exit 1
 			fi
-			
-			# 删除下载的 ZIP 文件
 			rm "./cf_ddns/txt/txt.zip"	
 			echo "已更新线路2的反向代理列表"
 		sleep 3s;	
-fi
-	
+fi	
 # 检查 result.csv 文件是否存在，如果不存在则创建
 #if [ ! -e ./cf_ddns/result.csv ]; then
 #touch ./cf_ddns/result.csv
 #fi
- 
 if [ "$IP_PR_IP" -ne "0" ] ; then
 		if [ "$IP_PR_IP" = "1" ] ; then
 			if [ -e "./cf_ddns/pr_ip.txt" ]; then
