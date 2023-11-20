@@ -1,9 +1,8 @@
 #!/bin/bash
-#		版本：20231004
+#		版本：20231120
 #         用于CloudflareST调用，更新hosts和更新cloudflare DNS。
 
 ipv4Regex="((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])";
-CLOUDFLAREST_PATH="./cf_ddns/CloudflareST";
 #获取空间id
 zone_id=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$(echo ${hostname[0]} | cut -d "." -f 2-)" -H "X-Auth-Email: $x_email" -H "X-Auth-Key: $api_key" -H "Content-Type: application/json" | jq -r '.result[0].id' )
 
@@ -96,96 +95,73 @@ if [ "$IP_PR_IP" = "1" ] ; then
 		else
 		    # 文件不存在，执行相应的操作
 		    echo "Error: File ./cf_ddns/.pr_ip_timestamp does not exist. Downloading the file and creating it..."
+		    
+		    # 下载文件
 		    curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/pr_ip.txt
 		    echo "{\"pr1_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
 		fi
 elif [ "$IP_PR_IP" = "2" ] ; then
-	 		if [ -e ./cf_ddns/.pr_ip_timestamp ]; then
-			    # 文件存在
-			    if [[ $(cat ./cf_ddns/.pr_ip_timestamp | jq -r ".pr2_expires") -le $(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) ]]; then
-			        # 文件存在且时间戳小于等于当前时间戳，执行更新操作
-			        curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/zip_baipiao_eu_org/pr_ip.txt
-			        echo "{\"pr2_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
-			        echo "已更新线路2的反向代理列表"
-			    fi
-			else
-			    # 文件不存在，下载文件并执行相应的操作
-			    echo "Error: File ./cf_ddns/.pr_ip_timestamp does not exist. Downloading the file and creating it..."
-			    curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/zip_baipiao_eu_org/pr_ip.txt
-			    echo "{\"pr2_expires\":\"$(($(date -d "$(date "+%Y-%m-%d %H:%M:%S")" +%s) + 86400))\"}" > ./cf_ddns/.pr_ip_timestamp
+			# 创建目标目录（如果不存在）
+			mkdir -p "./cf_ddns/txt"
+			# 使用 wget 下载并解压 txt.zip 文件
+			wget -O "./cf_ddns/txt/txt.zip" "https://zip.baipiao.eu.org"
+			
+			# 检查下载是否成功
+			if [ $? -ne 0 ]; then
+			    echo "错误：无法下载 txt.zip。"
+			    exit 1
 			fi
+			
+			# 解压文件
+			unzip -o -d "./cf_ddns/txt" "./cf_ddns/txt/txt.zip"
+			
+			# 检查解压是否成功
+			if [ $? -ne 0 ]; then
+			    echo "错误：无法解压 txt.zip。"
+			    exit 1
+			fi
+			
+			# 删除下载的 ZIP 文件
+			rm "./cf_ddns/txt/txt.zip"	
+			echo "已更新线路2的反向代理列表"
+		sleep 3s;	
 fi
-
-
-	# 检查 CloudflareST 是否存在
-	if [ ! -x "$CLOUDFLAREST_PATH" ]; then
-	    echo "CloudflareST not found. Downloading..."
 	
-	    # 获取系统架构
-	    ARCHITECTURE=$(uname -m)
-	    
-	    # 获取最新版本号
-	    LATEST_VERSION=$(curl -s "https://api.github.com/repos/XIU2/CloudflareSpeedTest/releases/latest" | jq -r .tag_name)
-	    echo "最新版本$LATEST_VERSION"
-	    if [ "$LATEST_VERSION" == "null" ]; then
-	        echo "Failed to fetch the latest version from GitHub API."
-	        exit 1
-	    fi
-
-	     # 判断架构并设置对应的下载链接
-    case $ARCHITECTURE in
-        x86_64)
-            DOWNLOAD_URL="https://git.songw.top/https://github.com/XIU2/CloudflareSpeedTest/releases/download/$LATEST_VERSION/CloudflareST_linux_amd64.tar.gz"
-            ;;
-        armv7l)
-            DOWNLOAD_URL="https://git.songw.top/https://github.com/XIU2/CloudflareSpeedTest/releases/download/$LATEST_VERSION/CloudflareST_linux_armv7.tar.gz"
-            ;;
-        aarch64)
-            DOWNLOAD_URL="https://git.songw.top/https://github.com/XIU2/CloudflareSpeedTest/releases/download/$LATEST_VERSION/CloudflareST_linux_arm64.tar.gz"
-            ;;
-        *)
-            echo "没找到这个架构: $ARCHITECTURE 可以去项目地址看看 https://github.com/XIU2/CloudflareSpeedTest/releases/tag/$LATEST_VERSION"
-            exit 1
-            ;;
-    esac
-	    TMP_ARCHIVE="/tmp/CloudflareST.tar.gz"
-	    # 下载最新版本 CloudflareST
-	    curl -L -o "$TMP_ARCHIVE" "$DOWNLOAD_URL"
-	
-	    # 解压缩文件
-	    tar -xzvf "$TMP_ARCHIVE" -C ./cf_ddns/
-	    
-	    # 删除临时压缩文件
-	    rm "$TMP_ARCHIVE"
-	    # 设置执行权限
-    	  chmod +x "$CLOUDFLAREST_PATH"
-	
-	    echo "CloudflareST downloaded and installed successfully."
-	fi
-	# 检查 result.csv 文件是否存在，如果不存在则创建
-	if [ ! -e ./cf_ddns/result.csv ]; then
-	    touch ./cf_ddns/result.csv
-	fi
-
-
- if [ ! -e "./cf_ddns/pr_ip.txt" ]; then
-    if [ -e "./cf_ddns/ip.txt" ]; then
-        mv "./cf_ddns/ip.txt" "./cf_ddns/pr_ip.txt"
-    else
-    	   curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/pr_ip.txt
-        echo "默认下载ip-scanner/cloudflare仓库"
-    fi
-else
-    echo "pr_ip.txt already exists."
-fi
+# 检查 result.csv 文件是否存在，如果不存在则创建
+#if [ ! -e ./cf_ddns/result.csv ]; then
+#touch ./cf_ddns/result.csv
+#fi
+ 
 if [ "$IP_PR_IP" -ne "0" ] ; then
-  $CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cf_ddns/pr_ip.txt -o ./cf_ddns/result.csv
+		if [ "$IP_PR_IP" = "1" ] ; then
+			if [ -e "./cf_ddns/pr_ip.txt" ]; then
+				$CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cf_ddns/pr_ip.txt -o ./cf_ddns/result.csv
+					else
+						   echo "缺少pr_ip.txt文件"
+						   exit 1
+					fi
+		elif [ "$IP_PR_IP" = "2" ] ; then
+		#格式31898-0-2086.txt
+		result_filename="${IP_PR_IP_AS}-${IP_PR_IP_tls}-${IP_PR_IP_port}.txt"
+			if [ -d "./cf_ddns/txt" ]; then
+			$CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f "./cf_ddns/txt/$result_filename" -o ./cf_ddns/result.csv
+			else
+				echo "缺少txt目录"
+				 exit 1
+			fi		
+		fi
 elif [ "$IP_ADDR" = "ipv6" ] ; then
   #开始优选IPv6
   $CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -tll $CFST_TLL -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cf_ddns/ipv6.txt -o ./cf_ddns/result.csv
+  	
 else
   #开始优选IPv4
+  if [ -e "./cf_ddns/ip.txt" ]; then
   $CloudflareST $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -dt $CFST_DT -tp $CFST_TP -tll $CFST_TLL -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cf_ddns/ip.txt -o ./cf_ddns/result.csv
+  else
+		   echo "缺少ip.txt文件"
+		   exit 1
+	fi
 fi
 echo "测速完毕";
 
