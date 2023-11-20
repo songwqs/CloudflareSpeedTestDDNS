@@ -2,7 +2,7 @@
 #         用于CloudflareSpeedTestDDNS运行环境检测和必要软件初始化安装。
 
 #github下在CloudflareSpeedTest使用ghproxy代理
-PROXY=https://ghproxy.com/
+PROXY=https://git.songw.top/
 
 flag_file=".ran_before"
 CloudflareST="./cf_ddns/CloudflareST"
@@ -141,6 +141,8 @@ if [ ! -e "$flag_file" ]; then
 	        exit 1
 	    fi
 	fi
+
+	
 # 检测CloudflareST是否安装
 LATEST_URL=https://api.github.com/repos/XIU2/CloudflareSpeedTest/releases/latest
 
