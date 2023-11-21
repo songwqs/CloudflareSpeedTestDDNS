@@ -79,7 +79,15 @@ if [ ! -e "$flag_file" ]; then
 	else
 	    echo "curl is already installed."
 	fi
-	
+	# 检查 unzip 是否安装
+	if ! command -v unzip &> /dev/null; then
+	    echo "unzip not found. Adding to the list of required packages."
+	    packages="$packages unzip"
+	else
+	    # 由于有的设备有 unzip 但版本过低还是无法正常解压，所以 unzip 强制更新
+	    packages="$packages unzip"
+	    echo "unzip is already installed."
+	fi
 	# 检查tar是否安装
 	if ! command -v tar &> /dev/null; then
 	    echo "tar not found. Adding to the list of required packages."
