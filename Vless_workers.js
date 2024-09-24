@@ -1,17 +1,15 @@
+// <!--GAMFC-->version base on commit 43fad05dcdae3b723c53c226f8181fc5bd47223e, time is 2023-06-22 15:20:02 UTC<!--GAMFC-END-->.
 // @ts-ignore
 import { connect } from 'cloudflare:sockets';
 
-// 建议修改为自己的 UUID
-let userID = '7597a4e5-bee0-470d-b50d-ebf412c00b47';
+// How to generate your own UUID:
+// [Windows] Press "Win + R", input cmd and run:  Powershell -NoExit -Command "[guid]::NewGuid()"
+let userID = '97ed5e4a-ade6-44da-8822-1d82b0484ac1';
 
-// 生成配置文件的 Cloudflare 优选 IP (www.gov.se   speed.cloudflare.com等使用Cloudflare CDN的网站也可以)
-const bestCFIP = "www.visa.com.hk"
-
-// 用于 Cloudflare 网站的代理 IP
-const proxyIPs = ['cdn.xn--b6gac.eu.org', 'cdn-all.xn--b6gac.eu.org']; // （https://github.com/HappyLeslieAlexander/Cloudflare_VLESS/blob/main/proxyip.txt 中的地址也可以）
+const proxyIPs = ['cdn-all.xn--b6gac.eu.org', 'cdn.xn--b6gac.eu.org', 'cdn-b100.xn--b6gac.eu.org', 'edgetunnel.anycast.eu.org', 'cdn.anycast.eu.org'];
 let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 
-let dohURL = 'https://cloudflare-dns.com/dns-query'; // https://cloudflare-dns.com/dns-query or https://dns.google/dns-query
+let dohURL = 'https://sky.rethinkdns.com/1:-Pf_____9_8A_AMAIgE8kMABVDDmKOHTAKg='; // https://cloudflare-dns.com/dns-query or https://dns.google/dns-query
 
 // v2board api environment variables
 let nodeId = ''; // 1
@@ -27,13 +25,13 @@ if (!isValidUUID(userID)) {
 export default {
     /**
      * @param {import("@cloudflare/workers-types").Request} request
-     * @param {{UID: string, PROXYIP: string, DNS_RESOLVER_URL: string, NODE_ID: int, API_HOST: string, API_TOKEN: string}} env
+     * @param {{UUID: string, PROXYIP: string, DNS_RESOLVER_URL: string, NODE_ID: int, API_HOST: string, API_TOKEN: string}} env
      * @param {import("@cloudflare/workers-types").ExecutionContext} ctx
      * @returns {Promise<Response>}
      */
     async fetch(request, env, ctx) {
         try {
-            userID = env.UID || userID;
+            userID = env.UUID || userID;
             proxyIP = env.PROXYIP || proxyIP;
             dohURL = env.DNS_RESOLVER_URL || dohURL;
             nodeId = env.NODE_ID || nodeId;
@@ -50,7 +48,7 @@ export default {
                                 "Content-Type": "application/json;charset=utf-8",
                             },
                         });
-                    case '/connect': // for test connect to Cloudflare socket
+                    case '/connect': // for test connect to cf socket
                         const [hostname, port] = ['cloudflare.com', '80'];
                         console.log(`Connecting to ${hostname}:${port}...`);
 
@@ -100,37 +98,10 @@ export default {
                             }
                         });
                     }
-                    case `/${userID}/base64`: {
-                        const base64Config = getBase64Config(userID, request.headers.get('Host'));
-                        return new Response(`${base64Config}`, {
-                            status: 200,
-                            headers: {
-                                "Content-Type": "text/plain;charset=utf-8",
-                            }
-                        });
-                    }
-                    case `/${userID}/clash`: {
-                        const clashConfig = getClashConfig(userID, request.headers.get('Host'));
-                        return new Response(`${clashConfig}`, {
-                            status: 200,
-                            headers: {
-                                "Content-Type": "text/plain;charset=utf-8",
-                            }
-                        });
-                    }
-                    case `/${userID}/sb`: {
-                        const singConfig = getSingConfig(userID, request.headers.get('Host'));
-                        return new Response(`${singConfig}`, {
-                            status: 200,
-                            headers: {
-                                "Content-Type": "application/json;charset=utf-8",
-                            }
-                        });
-                    }
                     default:
                         // return new Response('Not found', { status: 404 });
-                        // For any other path, reverse proxy to 'leslieblog.top' and return the original response
-                        url.hostname = 'leslieblog.top';
+                        // For any other path, reverse proxy to 'maimai.sega.jp' and return the original response
+                        url.hostname = 'www.bing.com';
                         url.protocol = 'https:';
                         request = new Request(url, request);
                         return await fetch(request);
@@ -204,7 +175,7 @@ async function vlessOverWSHandler(request) {
                 } `;
             if (hasError) {
                 // controller.error(message);
-                throw new Error(message); // Cloudflare seems has bug, controller.error will not end stream
+                throw new Error(message); // cf seems has bug, controller.error will not end stream
                 // webSocket.close(1000, message);
                 return;
             }
@@ -214,7 +185,7 @@ async function vlessOverWSHandler(request) {
                     isDns = true;
                 } else {
                     // controller.error('UDP proxy only enable for DNS which is port 53');
-                    throw new Error('UDP proxy only enable for DNS which is port 53'); // Cloudflare seems has bug, controller.error will not end stream
+                    throw new Error('UDP proxy only enable for DNS which is port 53'); // cf seems has bug, controller.error will not end stream
                     return;
                 }
             }
@@ -222,7 +193,7 @@ async function vlessOverWSHandler(request) {
             const vlessResponseHeader = new Uint8Array([vlessVersion[0], 0]);
             const rawClientData = chunk.slice(rawDataIndex);
 
-            // TODO: support udp here when Cloudflare runtime has udp support
+            // TODO: support udp here when cf runtime has udp support
             if (isDns) {
                 const { write } = await handleUDPOutBound(webSocket, vlessResponseHeader, log);
                 udpStreamWrite = write;
@@ -350,7 +321,7 @@ async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawCli
         return tcpSocket;
     }
 
-    // if the Cloudflare connect tcp socket have no incoming data, we retry to redirect ip
+    // if the cf connect tcp socket have no incoming data, we retry to redirect ip
     async function retry() {
         const tcpSocket = await connectAndWrite(proxyIP || addressRemote, portRemote)
         // no matter retry success or not, close websocket
@@ -601,9 +572,9 @@ async function remoteSocketToWS(remoteSocket, webSocket, vlessResponseHeader, re
                         webSocket.send(await new Blob([vlessHeader, chunk]).arrayBuffer());
                         vlessHeader = null;
                     } else {
-                        // seems no need rate limit this, Cloudflare seems fix this??..
+                        // seems no need rate limit this, CF seems fix this??..
                         // if (remoteChunkCount > 20000) {
-                        // 	// Cloudflare one package is 4096 byte(4kb),  4096 * 20000 = 80M
+                        // 	// cf one package is 4096 byte(4kb),  4096 * 20000 = 80M
                         // 	await delay(1);
                         // }
                         webSocket.send(chunk);
@@ -626,7 +597,7 @@ async function remoteSocketToWS(remoteSocket, webSocket, vlessResponseHeader, re
             safeCloseWebSocket(webSocket);
         });
 
-    // seems is Cloudflare connect socket have error,
+    // seems is cf connect socket have error,
     // 1. Socket.closed will have error
     // 2. Socket.readable will be close without any data coming
     if (hasIncomingData === false && retry) {
@@ -775,13 +746,13 @@ async function handleUDPOutBound(webSocket, vlessResponseHeader, log) {
  * @returns {string}
  */
 function getVLESSConfig(userID, hostName) {
-    const vlessLink = `vless://${userID}\u0040${bestCFIP}:80?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Workers/Pages`
-    const vlessTlsLink = `vless://${userID}\u0040${bestCFIP}:443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Workers/Pages-TLS`
+    const vlessLink = `vle123ss://${userID}@${hostName}:80?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2048#${hostName}`
+    const vlessTlsLink = `vle123ss://${userID}@${hostName}:443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2048#${hostName}`
     return `
-下面是非 TLS 端口的节点信息及节点分享链接，可使用 Cloudflare 支持的非 TLS 端口：
+下面是非 TLS 端口的节点信息及分享链接，可使用 CF 支持的非 TLS 端口：
 
-地址：${hostName} 或 Cloudflare 优选 IP
-端口：80 或 Cloudflare 支持的非 TLS 端口
+地址：${hostName} 或 CF 优选 IP
+端口：80 或 CF 支持的非 TLS 端口
 UUID：${userID}
 传输：ws
 伪装域名：${hostName}
@@ -789,10 +760,10 @@ UUID：${userID}
 
 ${vlessLink}
 
-下面是 TLS 端口的节点信息及节点分享链接，可使用 Cloudflare 支持的 TLS 端口：
+下面是 TLS 端口的节点信息及分享链接，可使用 CF 支持的 TLS 端口：
 
-地址：${hostName} 或 Cloudflare 优选 IP
-端口：443 或 Cloudflare 支持的 TLS 端口
+地址：${hostName} 或 CF 优选 IP
+端口：443 或 CF 支持的 TLS 端口
 UUID：${userID}
 传输：ws
 传输层安全：TLS
@@ -802,747 +773,7 @@ SNI 域名：${hostName}
 
 ${vlessTlsLink}
 
-Base64 通用节点订阅链接：https://${hostName}/${userID}/base64
-Clash 配置文件订阅链接：https://${hostName}/${userID}/clash
-Sing-box 配置文件订阅链接：https://${hostName}/${userID}/sb
-
-提示：部分地区有 Cloudflare 默认域名被污染的情况，除非打开客户端的 TLS 分片功能，否则无法使用 TLS 端口的节点
-如为 Pages 部署的节点则只能使用 TLS 端口的节点
+提示：如使用 workers.dev 域名，则无法使用 TLS 端口
 ---------------------------------------------------------------
 `;
-}
-
-function getBase64Config(userID, hostName) {
-    const vlessLinks = btoa(`vless://${userID}\u0040${bestCFIP}:80?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-80\nvless://${userID}\u0040${bestCFIP}:8080?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-8080\nvless://${userID}\u0040${bestCFIP}:8880?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-8880\nvless://${userID}\u0040${bestCFIP}:2052?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-2052\nvless://${userID}\u0040${bestCFIP}:2082?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-2082\nvless://${userID}\u0040${bestCFIP}:2086?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-2086\nvless://${userID}\u0040${bestCFIP}:2095?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-2095\nvless://${userID}\u0040${bestCFIP}:443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-TLS-443\nvless://${userID}\u0040${bestCFIP}:2053?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-TLS-2053\nvless://${userID}\u0040${bestCFIP}:2083?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-TLS-2083\nvless://${userID}\u0040${bestCFIP}:2087?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-TLS-2087\nvless://${userID}\u0040${bestCFIP}:2096?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-TLS-2096\nvless://${userID}\u0040${bestCFIP}:8443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Leslie-Cloudflare-vless-TLS-8443`);
-
-    return `${vlessLinks}`
-}
-
-function getClashConfig(userID, hostName) {
-    return `port: 7890
-allow-lan: true
-mode: rule
-log-level: info
-unified-delay: true
-global-client-fingerprint: chrome
-dns:
-  enable: true
-  listen: :53
-  ipv6: true
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  default-nameserver: 
-    - 223.5.5.5
-    - 1.1.1.1
-  nameserver:
-    - https://dns.alidns.com/dns-query
-    - https://cloudflare-dns.com/dns-query
-  fallback:
-    - https://cloudflare-dns.com/dns-query
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
-    ipcidr:
-      - 240.0.0.0/4
-
-proxies:
-- name: Cloudflare-vless-80
-  type: vless
-  server: ${bestCFIP}
-  port: 80
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-8080
-  type: vless
-  server: ${bestCFIP}
-  port: 8080
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-8880
-  type: vless
-  server: ${bestCFIP}
-  port: 8880
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-2052
-  type: vless
-  server: ${bestCFIP}
-  port: 2052
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-2082
-  type: vless
-  server: ${bestCFIP}
-  port: 2082
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-2086
-  type: vless
-  server: ${bestCFIP}
-  port: 2086
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-2095
-  type: vless
-  server: ${bestCFIP}
-  port: 2095
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-tls-443
-  type: vless
-  server: ${bestCFIP}
-  port: 443
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-tls-2053
-  type: vless
-  server: ${bestCFIP}
-  port: 2053
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-tls-2083
-  type: vless
-  server: ${bestCFIP}
-  port: 2083
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-tls-2087
-  type: vless
-  server: ${bestCFIP}
-  port: 2087
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-tls-2096
-  type: vless
-  server: ${bestCFIP}
-  port: 2096
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: Cloudflare-vless-tls-8443
-  type: vless
-  server: ${bestCFIP}
-  port: 8443
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-proxy-groups:
-- name: 负载均衡
-  type: load-balance
-  url: http://www.gstatic.com/generate_204
-  interval: 300
-  proxies:
-    - Cloudflare-vless-80
-    - Cloudflare-vless-8080
-    - Cloudflare-vless-8880
-    - Cloudflare-vless-2052
-    - Cloudflare-vless-2082
-    - Cloudflare-vless-2086
-    - Cloudflare-vless-2095
-    - Cloudflare-vless-tls-443
-    - Cloudflare-vless-tls-2053
-    - Cloudflare-vless-tls-2083
-    - Cloudflare-vless-tls-2087
-    - Cloudflare-vless-tls-2096
-    - Cloudflare-vless-tls-8443
-
-- name: 自动选择
-  type: url-test
-  url: http://www.gstatic.com/generate_204
-  interval: 300
-  tolerance: 50
-  proxies:
-    - Cloudflare-vless-80
-    - Cloudflare-vless-8080
-    - Cloudflare-vless-8880
-    - Cloudflare-vless-2052
-    - Cloudflare-vless-2082
-    - Cloudflare-vless-2086
-    - Cloudflare-vless-2095
-    - Cloudflare-vless-tls-443
-    - Cloudflare-vless-tls-2053
-    - Cloudflare-vless-tls-2083
-    - Cloudflare-vless-tls-2087
-    - Cloudflare-vless-tls-2096
-    - Cloudflare-vless-tls-8443
-    
-- name: 🌍选择代理
-  type: select
-  proxies:
-    - 负载均衡
-    - 自动选择
-    - DIRECT
-    - Cloudflare-vless-80
-    - Cloudflare-vless-8080
-    - Cloudflare-vless-8880
-    - Cloudflare-vless-2052
-    - Cloudflare-vless-2082
-    - Cloudflare-vless-2086
-    - Cloudflare-vless-2095
-    - Cloudflare-vless-tls-443
-    - Cloudflare-vless-tls-2053
-    - Cloudflare-vless-tls-2083
-    - Cloudflare-vless-tls-2087
-    - Cloudflare-vless-tls-2096
-    - Cloudflare-vless-tls-8443
-
-rules:
-  - GEOIP,LAN,DIRECT
-  - GEOIP,CN,DIRECT
-  - MATCH,🌍选择代理`
-}
-
-function getSingConfig(userID, hostName) {
-    return `{
-  "log": {
-    "disabled": false,
-    "level": "info",
-    "timestamp": true
-  },
-  "experimental": {
-    "clash_api": {
-      "external_controller": "127.0.0.1:9090",
-      "external_ui": "ui",
-      "external_ui_download_url": "",
-      "external_ui_download_detour": "",
-      "secret": "",
-      "default_mode": "Rule"
-    },
-    "cache_file": {
-      "enabled": true,
-      "path": "cache.db",
-      "store_fakeip": true
-    }
-  },
-    "dns": {
-        "fakeip": {
-            "enabled": true,
-            "inet4_range": "198.18.0.0/15",
-            "inet6_range": "fc00::/18"
-        },
-        "independent_cache": true,
-        "rules": [
-            {
-                "outbound": [
-                    "any"
-                ],
-                "server": "local"
-            },
-            {
-                "query_type": [
-                    "A",
-                    "AAAA"
-                ],
-                "rewrite_ttl": 1,
-                "server": "fakeip"
-            },
-            {
-                "clash_mode": "global",
-                "server": "remote"
-            },
-            {
-                "clash_mode": "direct",
-                "server": "local"
-            },
-            {
-                "rule_set": "geosite-cn",
-                "server": "local"
-            }
-        ],
-        "servers": [
-            {
-                "address": "https://cloudflare-dns.com/dns-query",
-                "detour": "select",
-                "tag": "remote"
-            },
-            {
-                "address": "https://dns.alidns.com/dns-query",
-                "detour": "direct",
-                "tag": "local"
-            },
-            {
-                "address": "rcode://success",
-                "tag": "block"
-            },
-            {
-                "address": "fakeip",
-                "tag": "fakeip"
-            }
-        ],
-        "strategy": "prefer_ipv4"
-    },
-    "experimental": {
-        "cache_file": {
-            "enabled": true
-        },
-        "clash_api": {
-            "external_controller": "127.0.0.1:9090",
-            "secret": ""
-        }
-    },
-    "inbounds": [
-        {
-            "auto_route": true,
-            "domain_strategy": "prefer_ipv4",
-            "endpoint_independent_nat": true,
-            "inet4_address": "172.19.0.1/30",
-            "inet6_address": "2001:0470:f9da:fdfa::1/64",
-            "mtu": 9000,
-            "sniff": true,
-            "strict_route": true,
-            "type": "tun"
-        },
-        {
-            "domain_strategy": "prefer_ipv4",
-            "listen": "127.0.0.1",
-            "listen_port": 2333,
-            "tag": "socks-in",
-            "type": "socks",
-            "users": []
-        },
-        {
-            "domain_strategy": "prefer_ipv4",
-            "listen": "127.0.0.1",
-            "listen_port": 2334,
-            "tag": "mixed-in",
-            "type": "mixed",
-            "users": []
-        }
-    ],
-    "log": {},
-    "outbounds": [
-        {
-            "tag": "select",
-            "type": "selector",
-            "default": "urltest",
-            "outbounds": [
-                "urltest",
-                "Cloudflare-vless-80",
-                "Cloudflare-vless-8080",
-                "Cloudflare-vless-8880",
-                "Cloudflare-vless-2052",
-                "Cloudflare-vless-2082",
-                "Cloudflare-vless-2086",
-                "Cloudflare-vless-2095",
-                "Cloudflare-vless-tls-443",
-                "Cloudflare-vless-tls-2053",
-                "Cloudflare-vless-tls-2083",
-                "Cloudflare-vless-tls-2087",
-                "Cloudflare-vless-tls-2096",
-                "Cloudflare-vless-tls-8443"
-            ]
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 80,
-            "tag": "Cloudflare-vless-80",
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 8080,
-            "tag": "Cloudflare-vless-8080",
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 8880,
-            "tag": "Cloudflare-vless-8880",
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 2052,
-            "tag": "Cloudflare-vless-2052",
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 2082,
-            "tag": "Cloudflare-vless-2082",
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 2086,
-            "tag": "Cloudflare-vless-2086",
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 2095,
-            "tag": "Cloudflare-vless-2095",
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 443,
-            "tag": "Cloudflare-vless-tls-443",
-            "tls": {
-                "enabled": true,
-                "server_name": "${hostName}"
-            },
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 2053,
-            "tag": "Cloudflare-vless-tls-2053",
-            "tls": {
-                "enabled": true,
-                "server_name": "${hostName}"
-            },
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 2083,
-            "tag": "Cloudflare-vless-tls-2083",
-            "tls": {
-                "enabled": true,
-                "server_name": "${hostName}"
-            },
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 2087,
-            "tag": "Cloudflare-vless-tls-2087",
-            "tls": {
-                "enabled": true,
-                "server_name": "${hostName}"
-            },
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 2096,
-            "tag": "Cloudflare-vless-tls-2096",
-            "tls": {
-                "enabled": true,
-                "server_name": "${hostName}"
-            },
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "server": "www.visa.com.hk",
-            "server_port": 8443,
-            "tag": "Cloudflare-vless-tls-8443",
-            "tls": {
-                "enabled": true,
-                "server_name": "${hostName}"
-            },
-            "transport": {
-                "headers": {
-                    "Host": [
-                        "${hostName}"
-                    ]
-                },
-                "path": "/?ed=2048",
-                "type": "ws"
-            },
-            "type": "vless",
-            "uuid": "${userID}",
-            "packet_encoding": "xudp"
-        },
-        {
-            "tag": "urltest",
-            "type": "urltest",
-            "outbounds": [
-                "Cloudflare-vless-80",
-                "Cloudflare-vless-8080",
-                "Cloudflare-vless-8880",
-                "Cloudflare-vless-2052",
-                "Cloudflare-vless-2082",
-                "Cloudflare-vless-2086",
-                "Cloudflare-vless-2095",
-                "Cloudflare-vless-tls-443",
-                "Cloudflare-vless-tls-2053",
-                "Cloudflare-vless-tls-2083",
-                "Cloudflare-vless-tls-2087",
-                "Cloudflare-vless-tls-2096",
-                "Cloudflare-vless-tls-8443"
-            ]
-        },
-        {
-            "tag": "direct",
-            "type": "direct"
-        },
-        {
-            "tag": "block",
-            "type": "block"
-        },
-        {
-            "tag": "dns-out",
-            "type": "dns"
-        }
-    ],
-    "route": {
-        "auto_detect_interface": true,
-        "rule_set": [
-            {
-                "format": "binary",
-                "tag": "geoip-cn",
-                "type": "remote",
-                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs"
-            },
-            {
-                "format": "binary",
-                "tag": "geosite-cn",
-                "type": "remote",
-                "url": "https://mirror.ghproxy.com/https://raw.githubusercontent.com/xmdhs/sing-geosite/rule-set-Loyalsoldier/geosite-geolocation-cn.srs"
-            }
-        ],
-        "rules": [
-            {
-                "outbound": "dns-out",
-                "port": 53
-            },
-            {
-                "clash_mode": "direct",
-                "outbound": "direct"
-            },
-            {
-                "clash_mode": "global",
-                "outbound": "select"
-            },
-            {
-                "ip_is_private": true,
-                "outbound": "direct"
-            },
-            {
-                "outbound": "direct",
-                "rule_set": "geoip-cn"
-            }
-        ]
-    }
-}`;
 }
