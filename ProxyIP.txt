@@ -36,3 +36,33 @@ proxyip.digitalocean.fxxk.dedyn.io
 IP落地区域: 数码海 维护频率: 4小时/次
 
 
+proxyip.hk.fxxk.dedyn.io
+cdn-all.xn--b6gac.eu.org
+cdn.xn--b6gac.eu.org
+cdn-b100.xn--b6gac.eu.org
+edgetunnel.anycast.eu.org
+43.153.80.208
+43.153.103.203
+cname2.164182.xyz
+wjus.huabuxiang.vip
+proxy.xxxxxxxx.tk
+edgetunnel.anycast.eu.org
+ts.hpc.tw
+my-telegram-is-herocore.onecf.eu.org
+sg.ipdb.rr.nu
+nl.ipdb.rr.nu
+hk.ipdb.rr.nu
+jp.ipdb.rr.nu
+us.ipdb.rr.nu
+hk.cf.zhetengsha.eu.org
+sg.cf.zhetengsha.eu.org
+us.cf.zhetengsha.eu.org
+jp.cf.zhetengsha.eu.org
+______________________________________________________________
+cdn.chigua.tk (CNAME 域名)
+cdn.anycast.eu.org (部分地区有污染)
+cdn-all.xn--b6gac.eu.org (韩国)
+cdn.xn--b6gac.eu.org(新加坡)
+cdn-b100.xn--b6gac.eu.org(新加坡)
+edgetunnel.anycast.eu.org(日本)
+
